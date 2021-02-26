@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import re, sys
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from models.CoinbasePro import AuthAPI
+from pycryptobot.models.coinbase_pro import AuthAPI
 
 # production: disable traceback
 sys.tracebacklimit = 0

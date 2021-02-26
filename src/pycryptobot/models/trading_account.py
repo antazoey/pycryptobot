@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import json, math, re, requests, sys
 from datetime import datetime
-from models.CoinbasePro import AuthAPI
+from pycryptobot.models.coinbase_pro import AuthAPI
 
 # production: disable traceback
 sys.tracebacklimit = 0

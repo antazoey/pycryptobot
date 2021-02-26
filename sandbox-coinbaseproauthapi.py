@@ -1,5 +1,5 @@
 import json
-from models.CoinbasePro import AuthAPI
+from pycryptobot.models.coinbase_pro import AuthAPI
 
 with open('config.json') as config_file:
     config = json.load(config_file)

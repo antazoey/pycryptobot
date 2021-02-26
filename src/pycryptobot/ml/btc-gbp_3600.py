@@ -3,8 +3,8 @@ import pandas as pd
 
 sys.path.append('.')
 # pylint: disable=import-error
-from models.Trading import TechnicalAnalysis
-from models.CoinbasePro import PublicAPI
+from pycryptobot.models.trading import TechnicalAnalysis
+from pycryptobot.models.coinbase_pro import PublicAPI
 
 api = PublicAPI()
 data = api.getHistoricalData('BTC-GBP', 3600)

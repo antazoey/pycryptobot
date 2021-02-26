@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from models.Trading import TechnicalAnalysis
-from models.CoinbasePro import PublicAPI
-from views.TradingGraphs import TradingGraphs
+from pycryptobot.models.trading import TechnicalAnalysis
+from pycryptobot.models.coinbase_pro import PublicAPI
+from pycryptobot.views.trading_graphs import TradingGraphs
 
 market = 'BTC-GBP'
 granularity = 3600

@@ -3,7 +3,7 @@ import pandas as pd
 
 sys.path.append('.')
 # pylint: disable=import-error
-from models.TradingAccount import TradingAccount
+from pycryptobot.models.trading_account import TradingAccount
 
 def test_default_initial_balance():
     account = TradingAccount()

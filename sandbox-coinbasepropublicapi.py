@@ -1,4 +1,4 @@
-from models.CoinbasePro import PublicAPI
+from pycryptobot.models.coinbase_pro import PublicAPI
 
 model = PublicAPI()
 resp = model.authAPI('GET','products/BTC-GBP/candles?granularity=3600')

@@ -1,87 +1,64 @@
-"""Python Crypto Bot consuming Coinbase Pro API"""
-
+import sys
+import click
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-import argparse, json, logging, math, os, random, re, sched, sys, time
-from models.Trading import TechnicalAnalysis
-from models.TradingAccount import TradingAccount
-from models.CoinbasePro import AuthAPI, PublicAPI
-from views.TradingGraphs import TradingGraphs
+import time
+import json
+import logging
+import math
+import os
+import random
+import re
+import sched
+
+# TODO remove
+import argparse
+
+from pycryptobot.models.trading import TechnicalAnalysis
+from pycryptobot.models.trading_account import TradingAccount
+from pycryptobot.models.coinbase_pro import AuthAPI, PublicAPI
+from pycryptobot.views.trading_graphs import TradingGraphs
+from pycryptobot.util import truncate
+from pycryptobot.util import get_comparison_string
+from pycryptobot.click_ext import PCBClickGroup
 
 # production: disable traceback
 sys.tracebacklimit = 0
 
 
-def truncate(f, n):
-    return math.floor(f * 10 ** n) / 10 ** n
+CONTEXT_SETTINGS = {
+    "help_option_names": ["-h", "--help", "--im-dumb"],
+    "max_content_width": 200,
+}
 
 
-def get_comparison_string(val1, val2, label="", precision=2):
-    truncated_val1 = truncate(val1, precision)
-    truncated_val2 = truncate(val2, precision)
-    label = f"{label}: " if label != "" else ""
-
-    if val1 > val2:
-        sign = ">"
-    elif val1 < val2:
-        sign = "<"
-    else:
-        sign = "="
-
-    return f"{label}{truncated_val1} {sign} {truncated_val2}"
+def exit_on_interrupt(signal, frame):
+    click.echo(err=True)
+    sys.exit(1)
 
 
-cryptoMarket = "BTC"
-fiatMarket = "GBP"
-granularity = 3600
-save_graphs = 0
-is_live = 0
-is_verbose = 1
-is_sim = 0
-sim_speed = ""
-sell_upper_pcnt = 101
-sell_lower_pcnt = -101
+signal.signal(signal.SIGINT, exit_on_interrupt)
 
 # reduce informational logging
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-# instantiate the arguments parser
-parser = argparse.ArgumentParser(
-    description="Python Crypto Bot using the Coinbase Pro API"
-)
 
-# optional arguments
-parser.add_argument(
-    "--granularity", type=int, help="Optionally provide granularity via arguments"
+@click.group(
+    help="Python Crypto Bot consuming Coinbase Pro API",
+    cls=PCBClickGroup,
+    context_settings=CONTEXT_SETTINGS,
 )
-parser.add_argument(
-    "--live", type=int, help="Optionally provide live status via arguments"
-)
-parser.add_argument(
-    "--market", type=str, help="Optionally provide market via arguments"
-)
-parser.add_argument(
-    "--graphs", type=int, help="Optionally save graphs to graphs directory"
-)
-parser.add_argument(
-    "--sim",
-    type=str,
-    help='Optionally provide simulation status via arguments ("fast", "slow")',
-)
-parser.add_argument(
-    "--verbose", type=int, help="Optionally provide verbose status via arguments"
-)
-parser.add_argument(
-    "--sellupperpcnt", type=int, help="Optionally provide upper sell percent"
-)
-parser.add_argument(
-    "--selllowerpcnt", type=int, help="Optionally provide lower sell percent"
-)
+@shared_options()
+def cli(state):
+    pass
 
-# parse arguments
-args = parser.parse_args()
+
+@click.command()
+def run():
+    """Run the trading bot."""
+
 
 # preload config from config.json if it exists
 try:
@@ -92,8 +69,8 @@ try:
 
         if "config" in config:
             if "cryptoMarket" and "fiatMarket" in config["config"]:
-                cryptoMarket = config["config"]["cryptoMarket"]
-                fiatMarket = config["config"]["fiatMarket"]
+                crypto_market = config["config"]["cryptoMarket"]
+                fiat_market = config["config"]["fiatMarket"]
 
             if "granularity" in config["config"]:
                 if isinstance(config["config"]["granularity"], int):
@@ -161,18 +138,18 @@ if args.market != None:
     if not p.match(args.market):
         raise TypeError("Coinbase Pro market required.")
 
-    cryptoMarket, fiatMarket = args.market.split("-", 2)
+    crypto_market, fiat_market = args.market.split("-", 2)
 
 # validation of crypto market inputs
-if cryptoMarket not in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
+if crypto_market not in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
     raise Exception("Invalid crypto market: BCH, BTC, ETH, LTC, ETH, XLM")
 
 # validation of fiat market inputs
-if fiatMarket not in ["EUR", "GBP", "USD"]:
+if fiat_market not in ["EUR", "GBP", "USD"]:
     raise Exception("Invalid FIAT market: EUR, GBP, USD")
 
 # reconstruct the market based on the crypto and fiat inputs
-market = cryptoMarket + "-" + fiatMarket
+market = crypto_market + "-" + fiat_market
 
 if args.granularity != None:
     # granularity set via --granularity argument
@@ -276,17 +253,17 @@ if is_live == 1:
     account = TradingAccount(config)
 
     # if the bot is restarted between a buy and sell it will sell first
-    if market.startswith("BTC-") and account.getBalance(cryptoMarket) > 0.001:
+    if market.startswith("BTC-") and account.getBalance(crypto_market) > 0.001:
         last_action = "BUY"
-    elif market.startswith("BCH-") and account.getBalance(cryptoMarket) > 0.01:
+    elif market.startswith("BCH-") and account.getBalance(crypto_market) > 0.01:
         last_action = "BUY"
-    elif market.startswith("ETH-") and account.getBalance(cryptoMarket) > 0.01:
+    elif market.startswith("ETH-") and account.getBalance(crypto_market) > 0.01:
         last_action = "BUY"
-    elif market.startswith("LTC-") and account.getBalance(cryptoMarket) > 0.1:
+    elif market.startswith("LTC-") and account.getBalance(crypto_market) > 0.1:
         last_action = "BUY"
-    elif market.startswith("XLM-") and account.getBalance(cryptoMarket) > 35:
+    elif market.startswith("XLM-") and account.getBalance(crypto_market) > 35:
         last_action = "BUY"
-    elif account.getBalance(fiatMarket) > 30:
+    elif account.getBalance(fiat_market) > 30:
         last_action = "SELL"
 
     authAPI = AuthAPI(
@@ -417,7 +394,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
     # polling is every 5 minutes (even for hourly intervals), but only process once per interval
     if last_df_index != current_df_index:
         precision = 2
-        if cryptoMarket == "XLM":
+        if crypto_market == "XLM":
             precision = 4
 
         price_text = "Close: " + str(truncate(price, precision))
@@ -772,7 +749,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     config["api_url"],
                 )
                 # execute a live market buy
-                resp = model.marketBuy(market, float(account.getBalance(fiatMarket)))
+                resp = model.marketBuy(market, float(account.getBalance(fiat_market)))
                 logging.info(resp)
                 # logging.info('attempt to buy ' + resp['specified_funds'] + ' (' + resp['funds'] + ' after fees) of ' + resp['product_id'])
             # if not live
@@ -882,7 +859,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     config["api_url"],
                 )
                 # execute a live market sell
-                resp = model.marketSell(market, float(account.getBalance(cryptoMarket)))
+                resp = model.marketSell(market, float(account.getBalance(crypto_market)))
                 logging.info(resp)
                 # logging.info('attempt to sell ' + resp['size'] + ' of ' + resp['product_id'])
             # if not live
@@ -1037,7 +1014,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
 
 try:
     logging.basicConfig(
-        filename="pycryptobot.log",
+        filename="../../pycryptobot.log",
         format="%(asctime)s - %(levelname)s: %(message)s",
         datefmt="%m/%d/%Y %I:%M:%S %p",
         filemode="a",
@@ -1092,15 +1069,15 @@ try:
     if is_live == 1:
         # if live, ensure sufficient funds to place next buy order
         if (last_action == "" or last_action == "SELL") and account.getBalance(
-            fiatMarket
+            fiat_market
         ) == 0:
             raise Exception(
-                "Insufficient " + fiatMarket + " funds to place next buy order!"
+                "Insufficient " + fiat_market + " funds to place next buy order!"
             )
         # if live, ensure sufficient crypto to place next sell order
-        elif last_action == "BUY" and account.getBalance(cryptoMarket) == 0:
+        elif last_action == "BUY" and account.getBalance(crypto_market) == 0:
             raise Exception(
-                "Insufficient " + cryptoMarket + " funds to place next sell order!"
+                "Insufficient " + crypto_market + " funds to place next sell order!"
             )
 
     s = sched.scheduler(time.time, time.sleep)

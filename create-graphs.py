@@ -1,7 +1,7 @@
 import argparse, json, re, sys
-from models.Trading import TechnicalAnalysis
-from models.CoinbasePro import PublicAPI
-from views.TradingGraphs import TradingGraphs
+from pycryptobot.models.trading import TechnicalAnalysis
+from pycryptobot.models.coinbase_pro import PublicAPI
+from pycryptobot.views.trading_graphs import TradingGraphs
 
 market = ''
 granularity = 0
