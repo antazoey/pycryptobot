@@ -480,7 +480,7 @@ class PublicAPI():
                 if self.die_on_api_error:
                     raise Exception(method.upper() + 'GET (' + '{}'.format(resp.status_code) + ') ' + self.api_url + uri + ' - ' + '{}'.format(resp.json()['message']))
                 else:
-                    print('error:', method.upper() + ' (' + '{}'.format(resp.status_code) + ') ' + self.api_url + uri + ' - ' + '{}'.format(resp.json()['message']))
+                    click.echo('error:', method.upper() + ' (' + '{}'.format(resp.status_code) + ') ' + self.api_url + uri + ' - ' + '{}'.format(resp.json()['message']))
                     return pd.DataFrame()
 
             resp.raise_for_status()
@@ -492,13 +492,13 @@ class PublicAPI():
                 if self.die_on_api_error:
                     raise SystemExit(err)
                 else:
-                    print(err)
+                    click.echo(err)
                     return pd.DataFrame()
             else:
                 if self.die_on_api_error:
                     raise SystemExit('ConnectionError: ' + self.api_url)
                 else:
-                    print('ConnectionError: ' + self.api_url)
+                    click.echo('ConnectionError: ' + self.api_url)
                     return pd.DataFrame()
 
         except requests.exceptions.HTTPError as err:
@@ -506,13 +506,13 @@ class PublicAPI():
                 if self.die_on_api_error:
                     raise SystemExit(err)
                 else:
-                    print(err)
+                    click.echo(err)
                     return pd.DataFrame()
             else:
                 if self.die_on_api_error:
                     raise SystemExit('HTTPError: ' + self.api_url)
                 else:
-                    print('HTTPError: ' + self.api_url)
+                    click.echo('HTTPError: ' + self.api_url)
                     return pd.DataFrame()
 
         except requests.Timeout as err:
@@ -520,11 +520,11 @@ class PublicAPI():
                 if self.die_on_api_error:
                     raise SystemExit(err)
                 else:
-                    print(err)
+                    click.echo(err)
                     return pd.DataFrame()
             else:
                 if self.die_on_api_error:
                     raise SystemExit('Timeout: ' + self.api_url)
                 else:
-                    print('Timeout: ' + self.api_url)
+                    click.echo('Timeout: ' + self.api_url)
                     return pd.DataFrame()

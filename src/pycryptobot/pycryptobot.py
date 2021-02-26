@@ -12,9 +12,6 @@ import random
 import re
 import sched
 
-# TODO remove
-import argparse
-
 from pycryptobot.models.trading import TechnicalAnalysis
 from pycryptobot.models.trading_account import TradingAccount
 from pycryptobot.models.coinbase_pro import AuthAPI, PublicAPI
@@ -128,7 +125,7 @@ try:
                         sell_lower_pcnt = int(config["config"]["selllowerpcnt"])
 
 except IOError:
-    print("warning: 'config.json' not found.")
+    click.echo("warning: 'config.json' not found.")
 
 if args.market != None:
     # market set via --market argument
@@ -294,7 +291,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
     df = pd.DataFrame()
     if len(tradingData) != 300:
         # data frame should have 300 rows, if not retry
-        print("error: data frame length is < 300 (" + str(len(tradingData)) + ")")
+        click.echo("error: data frame length is < 300 (" + str(len(tradingData)) + ")")
         logging.error(
             "error: data frame length is < 300 (" + str(len(tradingData)) + ")"
         )
@@ -377,7 +374,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
             action = "SELL"
             last_action = "BUY"
             log_text = "! Loss Failsafe Triggered (< " + str(sell_lower_pcnt) + "%)"
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.warning(log_text)
 
         # profit bank at sell_upper_pcnt
@@ -386,7 +383,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
             action = "SELL"
             last_action = "BUY"
             log_text = "! Profit Bank Triggered (> " + str(sell_upper_pcnt) + "%)"
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.warning(log_text)
 
     golden_death_text = " (BULL)" if goldencross else " (BEAR)"
@@ -420,67 +417,67 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
 
         if hammer:
             log_text = '* Candlestick Detected: Hammer ("Weak - Reversal - Bullish Signal - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if shooting_star:
             log_text = '* Candlestick Detected: Shooting Star ("Weak - Reversal - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if hanging_man:
             log_text = '* Candlestick Detected: Hanging Man ("Weak - Continuation - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if inverted_hammer:
             log_text = '* Candlestick Detected: Inverted Hammer ("Weak - Continuation - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if three_white_soldiers:
             log_text = '*** Candlestick Detected: Three White Soldiers ("Strong - Reversal - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if three_black_crows:
             log_text = '* Candlestick Detected: Three Black Crows ("Strong - Reversal - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if morning_star:
             log_text = '*** Candlestick Detected: Morning Star ("Strong - Reversal - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if evening_star:
             log_text = '*** Candlestick Detected: Evening Star ("Strong - Reversal - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if three_line_strike:
             log_text = '** Candlestick Detected: Three Line Strike ("Reliable - Reversal - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if abandoned_baby:
             log_text = '** Candlestick Detected: Abandoned Baby ("Reliable - Reversal - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if morning_doji_star:
             log_text = '** Candlestick Detected: Morning Doji Star ("Reliable - Reversal - Bullish Pattern - Up")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if evening_doji_star:
             log_text = '** Candlestick Detected: Evening Doji Star ("Reliable - Reversal - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         if two_black_gapping:
             log_text = '*** Candlestick Detected: Two Black Gapping ("Reliable - Reversal - Bearish Pattern - Down")'
-            print(log_text, "\n")
+            click.echo(log_text, "\n")
             logging.debug(log_text)
 
         ema_co_prefix = ""
@@ -545,7 +542,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                 output_text += " | " + margin
 
             logging.debug(output_text)
-            print(output_text)
+            click.echo(output_text)
         else:
             logging.debug(
                 "-- Iteration: " + str(iterations) + " --" + golden_death_text
@@ -579,39 +576,39 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
             logging.debug("action: " + action)
 
             # informational output on the most recent entry
-            print("")
-            print(
+            click.echo("")
+            click.echo(
                 "================================================================================"
             )
             txt = "        Iteration : " + str(iterations) + golden_death_text
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "   Since Last Buy : " + str(x_since_buy)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "  Since Last Sell : " + str(x_since_sell)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "        Timestamp : " + str(df_last.index.format()[0])
-            print("|", txt, (" " * (75 - len(txt))), "|")
-            print(
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo(
                 "--------------------------------------------------------------------------------"
             )
             txt = "            Close : " + str(truncate(price, 2))
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "            EMA12 : " + str(
                 truncate(float(df_last["ema12"].values[0]), 2)
             )
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "            EMA26 : " + str(
                 truncate(float(df_last["ema26"].values[0]), 2)
             )
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "   Crossing Above : " + str(ema12gtema26co)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "  Currently Above : " + str(ema12gtema26)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "   Crossing Below : " + str(ema12ltema26co)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "  Currently Below : " + str(ema12ltema26)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
             if ema12gtema26 == True and ema12gtema26co == True:
                 txt = "        Condition : EMA12 is currently crossing above EMA26"
@@ -623,23 +620,23 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                 txt = "        Condition : EMA12 is currently below EMA26 and has crossed over"
             else:
                 txt = "        Condition : -"
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
-            print(
+            click.echo(
                 "--------------------------------------------------------------------------------"
             )
             txt = "             MACD : " + str(
                 truncate(float(df_last["macd"].values[0]), 2)
             )
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "           Signal : " + str(
                 truncate(float(df_last["signal"].values[0]), 2)
             )
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "  Currently Above : " + str(macdgtsignal)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "  Currently Below : " + str(macdltsignal)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
             if macdgtsignal == True and macdgtsignalco == True:
                 txt = "        Condition : MACD is currently crossing above Signal"
@@ -651,15 +648,15 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                 txt = "        Condition : MACD is currently below Signal and has crossed over"
             else:
                 txt = "        Condition : -"
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
-            print(
+            click.echo(
                 "--------------------------------------------------------------------------------"
             )
             txt = "              OBV : " + str(truncate(obv, 4))
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "       OBV Change : " + str(obv_pc) + "%"
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
             if obv_pc >= 2:
                 txt = "        Condition : Large positive volume changes"
@@ -667,20 +664,20 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                 txt = "        Condition : Positive volume changes"
             else:
                 txt = "        Condition : Negative volume changes"
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
-            print(
+            click.echo(
                 "--------------------------------------------------------------------------------"
             )
             txt = "           Action : " + action
-            print("|", txt, (" " * (75 - len(txt))), "|")
-            print(
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo(
                 "================================================================================"
             )
             if last_action == "BUY":
                 txt = "           Margin : " + margin + "%"
-                print("|", txt, (" " * (75 - len(txt))), "|")
-                print(
+                click.echo("|", txt, (" " * (75 - len(txt))), "|")
+                click.echo(
                     "================================================================================"
                 )
 
@@ -720,7 +717,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         + price_text
                         + " | BUY"
                     )
-                    print(
+                    click.echo(
                         "\n",
                         current_df_index,
                         "|",
@@ -732,13 +729,13 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         "\n",
                     )
                 else:
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
-                    print(
+                    click.echo(
                         "|                      *** Executing LIVE Buy Order ***                        |"
                     )
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
                 # connect to coinbase pro api (authenticated)
@@ -765,7 +762,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         + price_text
                         + " | BUY"
                     )
-                    print(
+                    click.echo(
                         "\n",
                         current_df_index,
                         "|",
@@ -775,7 +772,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         price_text,
                         "| BUY",
                     )
-                    print(
+                    click.echo(
                         " Fibonacci Retracement Levels:",
                         str(
                             technicalAnalysis.getFibonacciRetracementLevels(
@@ -785,16 +782,16 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         "\n",
                     )
                 else:
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
-                    print(
+                    click.echo(
                         "|                      *** Executing TEST Buy Order ***                        |"
                     )
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
-                # print(df_last[['close','ema12','ema26','ema12gtema26','ema12gtema26co','macd','signal','macdgtsignal','obv','obv_pc']])
+                # click.echo(df_last[['close','ema12','ema26','ema12gtema26','ema12gtema26co','macd','signal','macdgtsignal','obv','obv_pc']])
 
             if save_graphs == 1:
                 tradinggraphs = TradingGraphs(technicalAnalysis)
@@ -822,7 +819,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         + price_text
                         + " | SELL"
                     )
-                    print(
+                    click.echo(
                         "\n",
                         current_df_index,
                         "|",
@@ -832,7 +829,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         price_text,
                         "| SELL",
                     )
-                    print(
+                    click.echo(
                         " Fibonacci Retracement Levels:",
                         str(
                             technicalAnalysis.getFibonacciRetracementLevels(
@@ -842,13 +839,13 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                         "\n",
                     )
                 else:
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
-                    print(
+                    click.echo(
                         "|                      *** Executing LIVE Sell Order ***                        |"
                     )
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
                 # connect to Coinbase Pro API live
@@ -865,13 +862,13 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
             # if not live
             else:
                 if is_verbose == 1:
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
-                    print(
+                    click.echo(
                         "|                      *** Executing TEST Sell Order ***                        |"
                     )
-                    print(
+                    click.echo(
                         "--------------------------------------------------------------------------------"
                     )
 
@@ -923,7 +920,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     + " | MARGIN FEES | "
                     + str(buy_sell_margin_fees)
                 )
-                print(
+                click.echo(
                     "\n",
                     current_df_index,
                     "|",
@@ -945,7 +942,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                 buy_sum = buy_sum + last_buy_price_minus_fees
                 sell_sum = sell_sum + sell_price
 
-            # print(df_last[['close','ema12','ema26','ema12ltema26','ema12ltema26co','macd','signal','macdltsignal','obv','obv_pc']])
+            # click.echo(df_last[['close','ema12','ema26','ema12ltema26','ema12ltema26co','macd','signal','macdltsignal','obv','obv_pc']])
 
             if save_graphs == 1:
                 tradinggraphs = TradingGraphs(technicalAnalysis)
@@ -960,7 +957,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
         last_df_index = str(df_last.index.format()[0])
 
         if iterations == 300:
-            print("\nSimulation Summary\n")
+            click.echo("\nSimulation Summary\n")
 
             if buy_count > sell_count:
                 # calculate last buy minus fees
@@ -971,16 +968,16 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     float(truncate(price, precision)) - last_buy_minus_fees
                 )
 
-            print("   Buy Count :", buy_count)
-            print("  Sell Count :", sell_count, "\n")
+            click.echo("   Buy Count :", buy_count)
+            click.echo("  Sell Count :", sell_count, "\n")
 
             margin_decimal = (sell_sum - buy_sum) / sell_sum if sell_sum else 0
-            print(
+            click.echo(
                 "      Margin :", str(truncate((margin_decimal * 100), 2)) + "%", "\n"
             )
     else:
         now = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        print(
+        click.echo(
             now,
             "|",
             market + golden_death_text,
@@ -1021,22 +1018,22 @@ try:
         level=logging.DEBUG,
     )
 
-    print(
+    click.echo(
         "--------------------------------------------------------------------------------"
     )
-    print(
+    click.echo(
         "|                Python Crypto Bot using the Coinbase Pro API                  |"
     )
-    print(
+    click.echo(
         "--------------------------------------------------------------------------------"
     )
 
     if is_verbose == 1:
         txt = "           Market : " + market
-        print("|", txt, (" " * (75 - len(txt))), "|")
+        click.echo("|", txt, (" " * (75 - len(txt))), "|")
         txt = "      Granularity : " + str(granularity) + " seconds"
-        print("|", txt, (" " * (75 - len(txt))), "|")
-        print(
+        click.echo("|", txt, (" " * (75 - len(txt))), "|")
+        click.echo(
             "--------------------------------------------------------------------------------"
         )
 
@@ -1045,23 +1042,23 @@ try:
     else:
         txt = "         Bot Mode : TEST - test trades using dummy funds :)"
 
-    print("|", txt, (" " * (75 - len(txt))), "|")
+    click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
     txt = "      Bot Started : " + str(datetime.now())
-    print("|", txt, (" " * (75 - len(txt))), "|")
-    print(
+    click.echo("|", txt, (" " * (75 - len(txt))), "|")
+    click.echo(
         "================================================================================"
     )
     if sell_upper_pcnt != 101:
         txt = "       Sell Upper : " + str(sell_upper_pcnt) + "%"
-        print("|", txt, (" " * (75 - len(txt))), "|")
+        click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
     if sell_lower_pcnt != -101:
         txt = "       Sell Lower : " + str(sell_lower_pcnt) + "%"
-        print("|", txt, (" " * (75 - len(txt))), "|")
+        click.echo("|", txt, (" " * (75 - len(txt))), "|")
 
     if sell_upper_pcnt != 101 or sell_lower_pcnt != 101:
-        print(
+        click.echo(
             "================================================================================"
         )
 
@@ -1113,10 +1110,10 @@ try:
             startDate = str(startDate.isoformat())
             endDate = str(endDate.isoformat())
             txt = "   Sampling start : " + str(startDate)
-            print("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
             txt = "     Sampling end : " + str(endDate)
-            print("|", txt, (" " * (75 - len(txt))), "|")
-            print(
+            click.echo("|", txt, (" " * (75 - len(txt))), "|")
+            click.echo(
                 "================================================================================"
             )
         else:
@@ -1130,7 +1127,7 @@ try:
 
 # catches a keyboard break of app, exits gracefully
 except KeyboardInterrupt:
-    print(datetime.now(), "closed")
+    click.echo(datetime.now(), "closed")
     try:
         sys.exit(0)
     except SystemExit:

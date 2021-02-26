@@ -597,7 +597,7 @@ class TechnicalAnalysis():
         try:
             self.df.to_csv(filename)
         except OSError:
-            print('Unable to save: ', filename)
+            click.echo('Unable to save: ', filename)
 
     def __calculateSupportResistenceLevels(self):
         """Support and Resistance levels. (private function)"""

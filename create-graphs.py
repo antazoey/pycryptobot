@@ -35,7 +35,7 @@ try:
                         granularity = config['config']['granularity']
 
 except IOError:
-    print("warning: 'config.json' not found.")
+    click.echo("warning: 'config.json' not found.")
 
 if args.market != None:
     # market set via --market argument

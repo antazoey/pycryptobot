@@ -54,7 +54,7 @@ class TradingAccount():
                 raise TypeError('Coinbase Pro API passphrase is invalid')
 
             # if a config file is provided the trading account will be using live data!
-            #print('Trading account mode: live (using YOUR account data - use at own risk!)')
+            #click.echo('Trading account mode: live (using YOUR account data - use at own risk!)')
             self.mode = 'live'
 
             self.api_url = config['api_url']
@@ -63,7 +63,7 @@ class TradingAccount():
             self.api_pass = config['api_pass']
         else:
             # if a config file is not provided the trading account will be using dummy data!
-            #print('Trading account mode: test (using dummy data)')
+            #click.echo('Trading account mode: test (using dummy data)')
             self.mode = 'test'
 
         # if trading account is for testing it will be instantiated with a balance of 1000
@@ -309,7 +309,7 @@ class TradingAccount():
             resp = model.marketBuy(market, float(self.getBalance(fiatMarket)))
             
             # TODO: not finished
-            print(resp)
+            click.echo(resp)
         else:
             # fiat amount should exceed balance
             if fiatAmount > self.getBalance(fiatMarket):
@@ -392,7 +392,7 @@ class TradingAccount():
             resp = model.marketSell(market, float(self.getBalance(cryptoMarket)))
             
             # TODO: not finished
-            print(resp)
+            click.echo(resp)
         else:
             # crypto amount should exceed balance
             if cryptoAmount > self.getBalance(cryptoMarket):
