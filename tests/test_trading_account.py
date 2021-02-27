@@ -7,14 +7,14 @@ from pycryptobot.models.trading_account import TradingAccount
 
 def test_default_initial_balance():
     account = TradingAccount()
-    assert type(account.getBalance('GBP')) is float
-    assert account.getBalance('GBP') == 1000
+    assert type(account.get_balance('GBP')) is float
+    assert account.get_balance('GBP') == 1000
 
 def test_buy_sufficient_funds():
     account = TradingAccount()
     account.buy('BTC', 'GBP', 1000, 30000)
-    assert type(account.getBalance('GBP')) is float
-    assert account.getBalance('GBP') == 0
+    assert type(account.get_balance('GBP')) is float
+    assert account.get_balance('GBP') == 0
 
 def test_buy_insufficient_funds():
     account = TradingAccount()
@@ -33,12 +33,12 @@ def test_successful_buy_and_sell():
     account = TradingAccount()
     account.buy('BTC', 'GBP', 1000, 30000)
     account.sell('BTC', 'GBP', 0.0331, 35000)
-    assert type(account.getBalance('GBP')) is float
-    assert account.getBalance('GBP') == 1152.7
+    assert type(account.get_balance('GBP')) is float
+    assert account.get_balance('GBP') == 1152.7
 
 def test_unspecified_balance_returns_dict():
     account = TradingAccount()
-    assert type(account.getBalance()) is pd.DataFrame
+    assert type(account.get_balance()) is pd.DataFrame
 
 def test_orders_returns_dict():
     account = TradingAccount()

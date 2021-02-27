@@ -9,72 +9,51 @@ from pycryptobot.models.coinbase_pro import AuthAPI
 # production: disable traceback
 sys.tracebacklimit = 0
 
-class TradingAccount():
-    def __init__(self, config={}):
-        """Trading account object model
 
-        Parameters
-        ----------
-        config : str, optional
-            A JSON string containing the API keys from config.json
-        """
-
-        # config needs to be a dictionary, empty or otherwise
-        if not isinstance(config, dict):
-            raise TypeError('Config provided is not a dictionary.')
-
-        # if the config is provided then a valid api_url, api_key, api_secret and api_pass need to be provided
-        if len(config) >= 4 and 'api_url' in config and 'api_key' in config and 'api_secret' in config and 'api_pass' in config:
-            valid_urls = [
-                'https://api.pro.coinbase.com',
-                'https://public.sandbox.pro.coinbase.com',
-                'https://api-public.sandbox.pro.coinbase.com'
-            ]
-
-            # validate api_url is valid
-            if config['api_url'] not in valid_urls:
-                raise ValueError('Coinbase Pro API URL is invalid')
-
-            if config['api_url'][-1] != '/':
-                config['api_url'] = config['api_url'] + '/'
+class TradingAccount:
+    def __init__(self, api_key_dict):
+        self._keys = api_key_dict
 
             # validate api_key is syntactically correct
-            p = re.compile(r"^[a-f0-9]{32,32}$")
-            if not p.match(config['api_key']):
-                raise TypeError('Coinbase Pro API key is invalid')
+            p = re.compile(r"^[a-f0-9]{32}$")
+            if not p.match(config["api_key"]):
+                raise TypeError("Coinbase Pro API key is invalid")
 
             # validate api_secret is syntactically correct
-            p = re.compile(r"^[A-z0-9+\/]+==$")
-            if not p.match(config['api_secret']):
-                raise TypeError('Coinbase Pro API secret is invalid')
+            p = re.compile(r"^[A-z0-9+/]+==$")
+            if not p.match(config["api_secret"]):
+                raise TypeError("Coinbase Pro API secret is invalid")
 
             # validate api_pass is syntactically correct
             p = re.compile(r"^[a-z0-9]{10,11}$")
-            if not p.match(config['api_pass']):
-                raise TypeError('Coinbase Pro API passphrase is invalid')
+            if not p.match(config["api_pass"]):
+                raise TypeError("Coinbase Pro API passphrase is invalid")
 
             # if a config file is provided the trading account will be using live data!
-            #click.echo('Trading account mode: live (using YOUR account data - use at own risk!)')
-            self.mode = 'live'
+            # click.echo('Trading account mode: live (using YOUR account data - use at own risk!)')
+            self.mode = "live"
 
-            self.api_url = config['api_url']
-            self.api_key = config['api_key']
-            self.api_secret = config['api_secret']
-            self.api_pass = config['api_pass']
+            self.api_url = config["api_url"]
+            self.api_key = config["api_key"]
+            self.api_secret = config["api_secret"]
+            self.api_pass = config["api_pass"]
         else:
             # if a config file is not provided the trading account will be using dummy data!
-            #click.echo('Trading account mode: test (using dummy data)')
-            self.mode = 'test'
+            # click.echo('Trading account mode: test (using dummy data)')
+            self.mode = "test"
 
         # if trading account is for testing it will be instantiated with a balance of 1000
-        self.balance = pd.DataFrame([['FIAT',1000,0,1000],['CRYPTO',0,0,0]], columns=['currency','balance','hold','available'])
-        
+        self.balance = pd.DataFrame(
+            [["FIAT", 1000, 0, 1000], ["CRYPTO", 0, 0, 0]],
+            columns=["currency", "balance", "hold", "available"],
+        )
+
         self.orders = pd.DataFrame()
 
     def truncate(self, f, n):
         return math.floor(f * 10 ** n) / 10 ** n
 
-    def getOrders(self, market='', action='', status='all'):
+    def getOrders(self, market="", action="", status="all"):
         """Retrieves orders either live or simulation
 
         Parameters
@@ -87,22 +66,22 @@ class TradingAccount():
             Filters orders by status, defaults to 'all'
         """
 
-        if market != '':
+        if market != "":
             # validate market is syntactically correct
             p = re.compile(r"^[A-Z]{3,4}\-[A-Z]{3,4}$")
             if not p.match(market):
-                raise TypeError('Coinbase Pro market is invalid.')
+                raise TypeError("Coinbase Pro market is invalid.")
 
-        if action != '':
+        if action != "":
             # validate action is either a buy or sell
-            if not action in ['buy', 'sell']:
-                raise ValueError('Invalid order action.')
+            if not action in ["buy", "sell"]:
+                raise ValueError("Invalid order action.")
 
         # validate status is open, pending, done, active or all
-        if not status in ['open', 'pending', 'done', 'active', 'all']:
-            raise ValueError('Invalid order status.')
+        if not status in ["open", "pending", "done", "active", "all"]:
+            raise ValueError("Invalid order status.")
 
-        if self.mode == 'live':
+        if self.mode == "live":
             # if config is provided and live connect to Coinbase Pro account portfolio
             model = AuthAPI(self.api_key, self.api_secret, self.api_pass, self.api_url)
             # retrieve orders from live Coinbase Pro account portfolio
@@ -110,12 +89,12 @@ class TradingAccount():
             return self.orders
         else:
             # return dummy orders
-            if market == '':
+            if market == "":
                 return self.orders
             else:
-                return self.orders[self.orders['market'] == market]
+                return self.orders[self.orders["market"] == market]
 
-    def getBalance(self, currency=''):
+    def get_balance(self, currency=""):
         """Retrieves balance either live or simulation
 
         Parameters
@@ -124,57 +103,80 @@ class TradingAccount():
             Filters orders by currency
         """
 
-        if self.mode == 'live':
+        if self.mode == "live":
             # if config is provided and live connect to Coinbase Pro account portfolio
             model = AuthAPI(self.api_key, self.api_secret, self.api_pass, self.api_url)
-            if currency == '':
+            if currency == "":
                 # retrieve all balances
-                return model.getAccounts()[['currency', 'balance', 'hold', 'available']]
+                return model.getAccounts()[["currency", "balance", "hold", "available"]]
             else:
                 df = model.getAccounts()
                 # retrieve balance of specified currency
-                df_filtered = df[df['currency'] == currency]['available']
+                df_filtered = df[df["currency"] == currency]["available"]
                 if len(df_filtered) == 0:
                     # return nil balance if no positive balance was found
                     return 0.0
                 else:
                     # return balance of specified currency (if positive)
-                    if currency in ['EUR','GBP','USD']:
-                        return self.truncate(float(df[df['currency'] == currency]['available'].values[0]), 2)
+                    if currency in ["EUR", "GBP", "USD"]:
+                        return self.truncate(
+                            float(
+                                df[df["currency"] == currency]["available"].values[0]
+                            ),
+                            2,
+                        )
                     else:
-                        return self.truncate(float(df[df['currency'] == currency]['available'].values[0]), 4)
-                        
+                        return self.truncate(
+                            float(
+                                df[df["currency"] == currency]["available"].values[0]
+                            ),
+                            4,
+                        )
+
         else:
             # return dummy balances
 
-            if currency == '':
+            if currency == "":
                 # retrieve all balances
                 return self.balance
             else:
                 # replace FIAT and CRYPTO placeholders
-                if currency in ['EUR','GBP','USD']:
-                    self.balance = self.balance.replace('FIAT', currency)
-                elif currency in ['BCH','BTC','ETH','LTC','XLM']:
-                    self.balance = self.balance.replace('CRYPTO', currency)
+                if currency in ["EUR", "GBP", "USD"]:
+                    self.balance = self.balance.replace("FIAT", currency)
+                elif currency in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
+                    self.balance = self.balance.replace("CRYPTO", currency)
 
-                if self.balance.currency[self.balance.currency.isin([currency])].empty == True:
-                    self.balance.loc[len(self.balance)] = [currency,0,0,0]
+                if (
+                    self.balance.currency[self.balance.currency.isin([currency])].empty
+                    == True
+                ):
+                    self.balance.loc[len(self.balance)] = [currency, 0, 0, 0]
 
                 # retrieve balance of specified currency
                 df = self.balance
-                df_filtered = df[df['currency'] == currency]['available']
+                df_filtered = df[df["currency"] == currency]["available"]
 
                 if len(df_filtered) == 0:
                     # return nil balance if no positive balance was found
                     return 0.0
                 else:
                     # return balance of specified currency (if positive)
-                    if currency in ['EUR','GBP','USD']:
-                        return self.truncate(float(df[df['currency'] == currency]['available'].values[0]), 2)
+                    if currency in ["EUR", "GBP", "USD"]:
+                        return self.truncate(
+                            float(
+                                df[df["currency"] == currency]["available"].values[0]
+                            ),
+                            2,
+                        )
                     else:
-                        return self.truncate(float(df[df['currency'] == currency]['available'].values[0]), 4)
+                        return self.truncate(
+                            float(
+                                df[df["currency"] == currency]["available"].values[0]
+                            ),
+                            4,
+                        )
 
-    def saveTrackerCSV(self, market='', save_file='tracker.csv'):
+    def saveTrackerCSV(self, market="", save_file="tracker.csv"):
         """Saves order tracker to CSV
 
         Parameters
@@ -185,33 +187,42 @@ class TradingAccount():
             Output CSV file
         """
 
-        if market != '':
+        if market != "":
             # validate market is syntactically correct
             p = re.compile(r"^[A-Z]{3,4}\-[A-Z]{3,4}$")
             if not p.match(market):
-                raise TypeError('Coinbase Pro market is invalid.')
+                raise TypeError("Coinbase Pro market is invalid.")
 
-        if self.mode == 'live':
+        if self.mode == "live":
             # if config is provided and live connect to Coinbase Pro account portfolio
             model = AuthAPI(self.api_key, self.api_secret, self.api_pass, self.api_url)
             # retrieve orders from live Coinbase Pro account portfolio
-            df = model.getOrders(market, '', 'done')
+            df = model.getOrders(market, "", "done")
         else:
             # return dummy orders
-            if market == '':
+            if market == "":
                 df = self.orders
             else:
-                df = self.orders[self.orders['market'] == market]
+                df = self.orders[self.orders["market"] == market]
 
-        if list(df.keys()) != [ 'created_at', 'market', 'action', 'type', 'size', 'value', 'status', 'price' ]:
+        if list(df.keys()) != [
+            "created_at",
+            "market",
+            "action",
+            "type",
+            "size",
+            "value",
+            "status",
+            "price",
+        ]:
             # no data, return early
             return False
 
         df_tracker = pd.DataFrame()
 
-        last_action = ''
-        for market in df['market'].sort_values().unique():
-            df_market = df[df['market'] == market]
+        last_action = ""
+        for market in df["market"].sort_values().unique():
+            df_market = df[df["market"] == market]
 
             df_buy = pd.DataFrame()
             df_sell = pd.DataFrame()
@@ -219,53 +230,82 @@ class TradingAccount():
             pair = 0
             # pylint: disable=unused-variable
             for index, row in df_market.iterrows():
-                if row['action'] == 'buy':
+                if row["action"] == "buy":
                     pair = 1
 
-                if pair == 1 and (row['action'] != last_action):
-                    if row['action'] == 'buy':
+                if pair == 1 and (row["action"] != last_action):
+                    if row["action"] == "buy":
                         df_buy = row
-                    elif row['action'] == 'sell':
+                    elif row["action"] == "sell":
                         df_sell = row
-                            
-                if row['action'] == 'sell' and len(df_buy) != 0:
-                    df_pair = pd.DataFrame([
+
+                if row["action"] == "sell" and len(df_buy) != 0:
+                    df_pair = pd.DataFrame(
                         [
-                            df_sell['status'], 
-                            df_buy['market'], 
-                            df_buy['created_at'], 
-                            df_buy['type'], 
-                            df_buy['size'],
-                            df_buy['value'], 
-                            df_buy['price'],
-                            df_sell['created_at'],
-                            df_sell['type'], 
-                            df_sell['size'], 
-                            df_sell['value'], 
-                            df_sell['price']                    
-                        ]], columns=[ 'status', 'market', 
-                            'buy_at', 'buy_type', 'buy_size', 'buy_value', 'buy_price',
-                            'sell_at', 'sell_type', 'sell_size', 'sell_value', 'sell_price' 
-                        ])
+                            [
+                                df_sell["status"],
+                                df_buy["market"],
+                                df_buy["created_at"],
+                                df_buy["type"],
+                                df_buy["size"],
+                                df_buy["value"],
+                                df_buy["price"],
+                                df_sell["created_at"],
+                                df_sell["type"],
+                                df_sell["size"],
+                                df_sell["value"],
+                                df_sell["price"],
+                            ]
+                        ],
+                        columns=[
+                            "status",
+                            "market",
+                            "buy_at",
+                            "buy_type",
+                            "buy_size",
+                            "buy_value",
+                            "buy_price",
+                            "sell_at",
+                            "sell_type",
+                            "sell_size",
+                            "sell_value",
+                            "sell_price",
+                        ],
+                    )
                     df_tracker = df_tracker.append(df_pair, ignore_index=True)
                     pair = 0
-                
-                last_action = row['action']
 
-        if list(df_tracker.keys()) != [ 'status', 'market', 
-                            'buy_at', 'buy_type', 'buy_size', 'buy_value', 'buy_price',
-                            'sell_at', 'sell_type', 'sell_size', 'sell_value', 'sell_price' ]:
+                last_action = row["action"]
+
+        if list(df_tracker.keys()) != [
+            "status",
+            "market",
+            "buy_at",
+            "buy_type",
+            "buy_size",
+            "buy_value",
+            "buy_price",
+            "sell_at",
+            "sell_type",
+            "sell_size",
+            "sell_value",
+            "sell_price",
+        ]:
             # no data, return early
             return False
 
-        df_tracker['profit'] = np.subtract(df_tracker['sell_value'], df_tracker['buy_value'])
-        df_tracker['margin'] = np.multiply(np.true_divide(df_tracker['profit'], df_tracker['sell_value']), 100)
-        df_sincebot = df_tracker[df_tracker['buy_at'] > '2021-02-1']
+        df_tracker["profit"] = np.subtract(
+            df_tracker["sell_value"], df_tracker["buy_value"]
+        )
+        df_tracker["margin"] = np.multiply(
+            np.true_divide(df_tracker["profit"], df_tracker["sell_value"]), 100
+        )
+        df_sincebot = df_tracker[df_tracker["buy_at"] > "2021-02-1"]
 
         try:
             df_sincebot.to_csv(save_file, index=False)
         except OSError:
-            raise SystemExit('Unable to save: ', save_file) 
+            raise SystemExit("Unable to save: ", save_file)
 
     def buy(self, cryptoMarket, fiatMarket, fiatAmount, manualPrice=0.00000000):
         """Places a buy order either live or simulation
@@ -284,52 +324,56 @@ class TradingAccount():
 
         # fiat funding amount must be an integer or float
         if not isinstance(fiatAmount, float) and not isinstance(fiatAmount, int):
-            raise TypeError('FIAT amount not numeric.')
+            raise TypeError("FIAT amount not numeric.")
 
         # fiat funding amount must be positive
         if fiatAmount <= 0:
-            raise Exception('Invalid FIAT amount.')
+            raise Exception("Invalid FIAT amount.")
 
         # crypto market should be either BCH, BTC, ETH, LTC or XLM
-        if cryptoMarket not in ['BCH', 'BTC', 'ETH', 'LTC', 'XLM']:
-            raise Exception('Invalid crypto market: BCH, BTC, ETH, LTC, ETH, or XLM')
+        if cryptoMarket not in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
+            raise Exception("Invalid crypto market: BCH, BTC, ETH, LTC, ETH, or XLM")
 
         # fiat market should be either EUR, GBP, or USD
-        if fiatMarket not in ['EUR', 'GBP', 'USD']:
-            raise Exception('Invalid FIAT market: EUR, GBP, USD')
+        if fiatMarket not in ["EUR", "GBP", "USD"]:
+            raise Exception("Invalid FIAT market: EUR, GBP, USD")
 
         # reconstruct the exchange market using crypto and fiat inputs
-        market = cryptoMarket + '-' + fiatMarket
+        market = cryptoMarket + "-" + fiatMarket
 
-        if self.mode == 'live':
+        if self.mode == "live":
             # connect to coinbase pro api (authenticated)
             model = AuthAPI(self.api_key, self.api_secret, self.api_pass, self.api_url)
 
             # execute a live market buy
-            resp = model.marketBuy(market, float(self.getBalance(fiatMarket)))
-            
+            resp = model.marketBuy(market, float(self.get_balance(fiatMarket)))
+
             # TODO: not finished
             click.echo(resp)
         else:
             # fiat amount should exceed balance
-            if fiatAmount > self.getBalance(fiatMarket):
-                raise Exception('Insufficient funds.')
+            if fiatAmount > self.get_balance(fiatMarket):
+                raise Exception("Insufficient funds.")
 
             # manual price must be an integer or float
             if not isinstance(manualPrice, float) and not isinstance(manualPrice, int):
-                raise TypeError('Optional manual price not numeric.')
+                raise TypeError("Optional manual price not numeric.")
 
             price = manualPrice
             # if manualPrice is non-positive retrieve the current live price
             if manualPrice <= 0:
                 resp = requests.get(
-                    'https://api-public.sandbox.pro.coinbase.com/products/BTC-GBP/ticker')
+                    "https://api-public.sandbox.pro.coinbase.com/products/BTC-GBP/ticker"
+                )
                 if resp.status_code != 200:
-                    raise Exception('GET /products/' + market +
-                                    '/ticker {}'.format(resp.status_code))
+                    raise Exception(
+                        "GET /products/"
+                        + market
+                        + "/ticker {}".format(resp.status_code)
+                    )
                 resp.raise_for_status()
                 json = resp.json()
-                price = float(json['price'])
+                price = float(json["price"])
 
             # calculate purchase fees
             fee = fiatAmount * 0.005
@@ -339,17 +383,48 @@ class TradingAccount():
             # append dummy order into orders dataframe
             ts = pd.Timestamp.now()
             price = (fiatAmountMinusFee * 100) / (total * 100)
-            order = pd.DataFrame([[market, 'buy', 'market', float('{:.8f}'.format(total)), fiatAmountMinusFee, 'done', price]], columns=[
-                                 'market', 'action', 'type', 'size', 'value', 'status', 'price'], index=[ts])
-            self.orders = pd.concat([self.orders, pd.DataFrame(order)], ignore_index=False)
+            order = pd.DataFrame(
+                [
+                    [
+                        market,
+                        "buy",
+                        "market",
+                        float("{:.8f}".format(total)),
+                        fiatAmountMinusFee,
+                        "done",
+                        price,
+                    ]
+                ],
+                columns=[
+                    "market",
+                    "action",
+                    "type",
+                    "size",
+                    "value",
+                    "status",
+                    "price",
+                ],
+                index=[ts],
+            )
+            self.orders = pd.concat(
+                [self.orders, pd.DataFrame(order)], ignore_index=False
+            )
 
             # update the dummy fiat balance
-            self.balance.loc[self.balance['currency'] == fiatMarket, 'balance'] = self.getBalance(fiatMarket) - fiatAmount
-            self.balance.loc[self.balance['currency'] == fiatMarket, 'available'] = self.getBalance(fiatMarket) - fiatAmount
+            self.balance.loc[self.balance["currency"] == fiatMarket, "balance"] = (
+                    self.get_balance(fiatMarket) - fiatAmount
+            )
+            self.balance.loc[self.balance["currency"] == fiatMarket, "available"] = (
+                    self.get_balance(fiatMarket) - fiatAmount
+            )
 
             # update the dummy crypto balance
-            self.balance.loc[self.balance['currency'] == cryptoMarket, 'balance'] = self.getBalance(cryptoMarket) + (fiatAmountMinusFee / price)
-            self.balance.loc[self.balance['currency'] == cryptoMarket, 'available'] = self.getBalance(cryptoMarket) + (fiatAmountMinusFee / price)
+            self.balance.loc[
+                self.balance["currency"] == cryptoMarket, "balance"
+            ] = self.get_balance(cryptoMarket) + (fiatAmountMinusFee / price)
+            self.balance.loc[
+                self.balance["currency"] == cryptoMarket, "available"
+            ] = self.get_balance(cryptoMarket) + (fiatAmountMinusFee / price)
 
     def sell(self, cryptoMarket, fiatMarket, cryptoAmount, manualPrice=0.00000000):
         """Places a sell order either live or simulation
@@ -366,41 +441,41 @@ class TradingAccount():
             Used for simulations specifying the live price to purchase
         """
         # crypto market should be either BCH, BTC, ETH, LTC, XLM
-        if cryptoMarket not in ['BCH', 'BTC', 'ETH', 'LTC', 'XLM']:
-            raise Exception('Invalid crypto market: BCH, BTC, ETH, LTC, ETH, XLM')
+        if cryptoMarket not in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
+            raise Exception("Invalid crypto market: BCH, BTC, ETH, LTC, ETH, XLM")
 
         # fiat market should be either EUR, GBP, or USD
-        if fiatMarket not in ['EUR', 'GBP', 'USD']:
-            raise Exception('Invalid FIAT market: EUR, GBP, USD')
+        if fiatMarket not in ["EUR", "GBP", "USD"]:
+            raise Exception("Invalid FIAT market: EUR, GBP, USD")
 
         # reconstruct the exchange market using crypto and fiat inputs
-        market = cryptoMarket + '-' + fiatMarket
+        market = cryptoMarket + "-" + fiatMarket
 
         # crypto amount must be an integer or float
         if not isinstance(cryptoAmount, float) and not isinstance(cryptoAmount, int):
-            raise TypeError('Crypto amount not numeric.')
+            raise TypeError("Crypto amount not numeric.")
 
         # crypto amount must be positive
         if cryptoAmount <= 0:
-            raise Exception('Invalid crypto amount.')
+            raise Exception("Invalid crypto amount.")
 
-        if self.mode == 'live':
+        if self.mode == "live":
             # connect to Coinbase Pro API live
             model = AuthAPI(self.api_key, self.api_secret, self.api_pass, self.api_url)
 
             # execute a live market sell
-            resp = model.marketSell(market, float(self.getBalance(cryptoMarket)))
-            
+            resp = model.marketSell(market, float(self.get_balance(cryptoMarket)))
+
             # TODO: not finished
             click.echo(resp)
         else:
             # crypto amount should exceed balance
-            if cryptoAmount > self.getBalance(cryptoMarket):
-                raise Exception('Insufficient funds.')
+            if cryptoAmount > self.get_balance(cryptoMarket):
+                raise Exception("Insufficient funds.")
 
             # manual price must be an integer or float
             if not isinstance(manualPrice, float) and not isinstance(manualPrice, int):
-                raise TypeError('Optional manual price not numeric.')
+                raise TypeError("Optional manual price not numeric.")
 
             # calculate purchase fees
             fee = cryptoAmount * 0.005
@@ -409,26 +484,65 @@ class TradingAccount():
             price = manualPrice
             if manualPrice <= 0:
                 # if manualPrice is non-positive retrieve the current live price
-                resp = requests.get('https://api-public.sandbox.pro.coinbase.com/products/' + market + '/ticker')
+                resp = requests.get(
+                    "https://api-public.sandbox.pro.coinbase.com/products/"
+                    + market
+                    + "/ticker"
+                )
                 if resp.status_code != 200:
-                    raise Exception('GET /products/' + market + '/ticker {}'.format(resp.status_code))
+                    raise Exception(
+                        "GET /products/"
+                        + market
+                        + "/ticker {}".format(resp.status_code)
+                    )
                 resp.raise_for_status()
                 json = resp.json()
-                price = float(json['price'])
+                price = float(json["price"])
 
             total = price * cryptoAmountMinusFee
 
             # append dummy order into orders dataframe
             ts = pd.Timestamp.now()
             price = ((price * cryptoAmount) * 100) / (cryptoAmount * 100)
-            order = pd.DataFrame([[market, 'sell', 'market', cryptoAmountMinusFee, float('{:.8f}'.format(
-                total)), 'done', price]], columns=['market', 'action', 'type', 'size', 'value', 'status', 'price'], index=[ts])
-            self.orders = pd.concat([self.orders, pd.DataFrame(order)], ignore_index=False)
+            order = pd.DataFrame(
+                [
+                    [
+                        market,
+                        "sell",
+                        "market",
+                        cryptoAmountMinusFee,
+                        float("{:.8f}".format(total)),
+                        "done",
+                        price,
+                    ]
+                ],
+                columns=[
+                    "market",
+                    "action",
+                    "type",
+                    "size",
+                    "value",
+                    "status",
+                    "price",
+                ],
+                index=[ts],
+            )
+            self.orders = pd.concat(
+                [self.orders, pd.DataFrame(order)], ignore_index=False
+            )
 
             # update the dummy fiat balance
-            self.balance.loc[self.balance['currency'] == fiatMarket, 'balance'] = self.getBalance(fiatMarket) + total
-            self.balance.loc[self.balance['currency'] == fiatMarket, 'available'] = self.getBalance(fiatMarket) + total
+            self.balance.loc[self.balance["currency"] == fiatMarket, "balance"] = (
+                    self.get_balance(fiatMarket) + total
+            )
+            self.balance.loc[self.balance["currency"] == fiatMarket, "available"] = (
+                    self.get_balance(fiatMarket) + total
+            )
 
             # update the dummy crypto balance
-            self.balance.loc[self.balance['currency'] == cryptoMarket, 'balance'] = self.getBalance(cryptoMarket) - cryptoAmount
-            self.balance.loc[self.balance['currency'] == cryptoMarket, 'available'] = self.getBalance(cryptoMarket) - cryptoAmount
+            self.balance.loc[self.balance["currency"] == cryptoMarket, "balance"] = (
+                    self.get_balance(cryptoMarket) - cryptoAmount
+            )
+            self.balance.loc[self.balance["currency"] == cryptoMarket, "available"] = (
+                    self.get_balance(cryptoMarket) - cryptoAmount
+            )

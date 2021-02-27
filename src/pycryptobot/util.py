@@ -15,3 +15,11 @@ def get_comparison_string(val1, val2, label="", precision=2):
         sign = "="
 
     return f"{label}{truncated_val1} {sign} {truncated_val2}"
+
+
+def get_attribute_keys_from_class(cls):
+    return [
+        cls().__getattribute__(attr)
+        for attr in dir(cls)
+        if not callable(cls().__getattribute__(attr)) and not attr.startswith("_")
+    ]

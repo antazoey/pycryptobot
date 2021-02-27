@@ -45,5 +45,5 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: Implementation :: CPython",
     ],
-    entry_points={"console_scripts": ["pcb=pycryptobot.pycryptobot:cli"]},
+    entry_points={"console_scripts": ["pcb=pycryptobot.main:cli"]},
 )

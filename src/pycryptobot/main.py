@@ -1,3 +1,4 @@
+import signal
 import sys
 import click
 import pandas as pd
@@ -15,6 +16,14 @@ import sched
 from pycryptobot.models.trading import TechnicalAnalysis
 from pycryptobot.models.trading_account import TradingAccount
 from pycryptobot.models.coinbase_pro import AuthAPI, PublicAPI
+from pycryptobot.options import models_option
+from pycryptobot.options import granularity_option
+from pycryptobot.options import graphs_option
+from pycryptobot.options import live_option
+from pycryptobot.options import simulation_option
+from pycryptobot.options import market_option
+from pycryptobot.options import verbose_option
+from pycryptobot.simulator import Simulator
 from pycryptobot.views.trading_graphs import TradingGraphs
 from pycryptobot.util import truncate
 from pycryptobot.util import get_comparison_string
@@ -31,7 +40,7 @@ CONTEXT_SETTINGS = {
 
 
 def exit_on_interrupt(signal, frame):
-    click.echo(err=True)
+    click.echo(datetime.now(), "closed")
     sys.exit(1)
 
 
@@ -47,220 +56,52 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
     cls=PCBClickGroup,
     context_settings=CONTEXT_SETTINGS,
 )
-@shared_options()
-def cli(state):
+@models_option()
+def cli(models):
     pass
 
 
 @click.command()
-def run():
+@models_option()
+@market_option
+@graphs_option
+@simulation_option
+@live_option
+@granularity_option
+@verbose_option
+def run(models, market, graphs, simulation, live, verbose):
     """Run the trading bot."""
+    crypto_market, fiat_market = market
 
+    # initial state is to wait
+    action = "WAIT"
+    last_action = ""
+    last_buy = 0
+    last_df_index = ""
+    buy_state = ""
+    iterations = 0
+    x_since_buy = 0
+    x_since_sell = 0
+    buy_count = 0
+    sell_count = 0
+    buy_sum = 0
+    sell_sum = 0
+    failsafe = False
+    account = models.account
 
-# preload config from config.json if it exists
-try:
-    # open the config.json file
-    with open("config.json") as config_file:
-        # store the configuration in dictionary
-        config = json.load(config_file)
-
-        if "config" in config:
-            if "cryptoMarket" and "fiatMarket" in config["config"]:
-                crypto_market = config["config"]["cryptoMarket"]
-                fiat_market = config["config"]["fiatMarket"]
-
-            if "granularity" in config["config"]:
-                if isinstance(config["config"]["granularity"], int):
-                    if config["config"]["granularity"] in [
-                        60,
-                        300,
-                        900,
-                        3600,
-                        21600,
-                        86400,
-                    ]:
-                        granularity = config["config"]["granularity"]
-
-            if "graphs" in config["config"]:
-                if isinstance(config["config"]["graphs"], int):
-                    if config["config"]["graphs"] in [0, 1]:
-                        save_graphs = config["config"]["graphs"]
-
-            if "live" in config["config"]:
-                if isinstance(config["config"]["live"], int):
-                    if config["config"]["live"] in [0, 1]:
-                        is_live = config["config"]["live"]
-
-            if "verbose" in config["config"]:
-                if isinstance(config["config"]["verbose"], int):
-                    if config["config"]["verbose"] in [0, 1]:
-                        is_verbose = config["config"]["verbose"]
-
-            if "sim" in config["config"]:
-                if isinstance(config["config"]["sim"], str):
-                    if config["config"]["sim"] in [
-                        "slow",
-                        "fast",
-                        "slow-sample",
-                        "fast-sample",
-                    ]:
-                        is_live = 0
-                        is_sim = 1
-                        sim_speed = config["config"]["sim"]
-
-            if "sellupperpcnt" in config["config"]:
-                if isinstance(config["config"]["sellupperpcnt"], int):
-                    if (
-                        config["config"]["sellupperpcnt"] > 0
-                        and config["config"]["sellupperpcnt"] <= 100
-                    ):
-                        sell_upper_pcnt = int(config["config"]["sellupperpcnt"])
-
-            if "selllowerpcnt" in config["config"]:
-                if isinstance(config["config"]["selllowerpcnt"], int):
-                    if (
-                        config["config"]["selllowerpcnt"] >= -100
-                        and config["config"]["selllowerpcnt"] < 0
-                    ):
-                        sell_lower_pcnt = int(config["config"]["selllowerpcnt"])
-
-except IOError:
-    click.echo("warning: 'config.json' not found.")
-
-if args.market != None:
-    # market set via --market argument
-
-    # validates the market is syntactically correct
-    p = re.compile(r"^[A-Z]{3,4}\-[A-Z]{3,4}$")
-    if not p.match(args.market):
-        raise TypeError("Coinbase Pro market required.")
-
-    crypto_market, fiat_market = args.market.split("-", 2)
-
-# validation of crypto market inputs
-if crypto_market not in ["BCH", "BTC", "ETH", "LTC", "XLM"]:
-    raise Exception("Invalid crypto market: BCH, BTC, ETH, LTC, ETH, XLM")
-
-# validation of fiat market inputs
-if fiat_market not in ["EUR", "GBP", "USD"]:
-    raise Exception("Invalid FIAT market: EUR, GBP, USD")
-
-# reconstruct the market based on the crypto and fiat inputs
-market = crypto_market + "-" + fiat_market
-
-if args.granularity != None:
-    # granularity set via --granularity argument
-
-    # validates granularity is an integer
-    if not isinstance(args.granularity, int):
-        raise TypeError("Granularity integer required.")
-
-    # validates the granularity is supported by Coinbase Pro
-    if not args.granularity in [60, 300, 900, 3600, 21600, 86400]:
-        raise TypeError("Granularity options: 60, 300, 900, 3600, 21600, 86400.")
-
-    granularity = args.granularity
-
-if args.graphs != None:
-    # graphs status set via --graphs argument
-
-    if args.graphs == 1:
-        save_graphs = 1
-    else:
-        save_graphs = 0
-
-if args.live != None:
-    # live status set via --live argument
-
-    if args.live == 1:
-        is_live = 1
-    else:
-        is_live = 0
-
-if args.verbose != None:
-    # verbose status set via --verbose argument
-
-    if args.verbose == 1:
-        is_verbose = 1
-    else:
-        is_verbose = 0
-
-if args.sim != None:
-    # sim status set via --sim argument
-
-    if args.sim == "slow":
-        is_sim = 1
-        sim_speed = "slow"
-        is_live = 0
-    elif args.sim == "slow-sample":
-        is_sim = 1
-        sim_speed = "slow-sample"
-        is_live = 0
-    elif args.sim == "fast":
-        is_sim = 1
-        sim_speed = "fast"
-        is_live = 0
-    elif args.sim == "fast-sample":
-        is_sim = 1
-        sim_speed = "fast-sample"
-        is_live = 0
-
-    else:
-        is_sim = 0
-        sim_speed = ""
-
-if args.sellupperpcnt != None:
-    # sell upper percent --sellupperlimit pcnt
-
-    if isinstance(args.sellupperpcnt, int):
-        if args.sellupperpcnt > 0 and args.sellupperpcnt <= 100:
-            sell_upper_pcnt = int(args.sellupperpcnt)
-
-if args.selllowerpcnt != None:
-    # sell lower percent --selllowerlimit pcnt
-
-    if isinstance(args.selllowerpcnt, int):
-        if args.selllowerpcnt >= -100 and args.selllowerpcnt < 0:
-            sell_lower_pcnt = int(args.selllowerpcnt)
-
-# initial state is to wait
-action = "WAIT"
-last_action = ""
-last_buy = 0
-last_df_index = ""
-buy_state = ""
-iterations = 0
-x_since_buy = 0
-x_since_sell = 0
-buy_count = 0
-sell_count = 0
-buy_sum = 0
-sell_sum = 0
-failsafe = False
-
-config = {}
-account = None
-# if live trading is enabled
-if is_live == 1:
-    # open the config.json file
-    with open("config.json") as config_file:
-        # store the configuration in dictionary
-        config = json.load(config_file)
-    # connect your Coinbase Pro live account
-    account = TradingAccount(config)
-
+    balance = account.get_balance
     # if the bot is restarted between a buy and sell it will sell first
-    if market.startswith("BTC-") and account.getBalance(crypto_market) > 0.001:
+    if market.startswith("BTC-") and account.get_balance(crypto_market) > 0.001:
         last_action = "BUY"
-    elif market.startswith("BCH-") and account.getBalance(crypto_market) > 0.01:
+    elif market.startswith("BCH-") and account.get_balance(crypto_market) > 0.01:
         last_action = "BUY"
-    elif market.startswith("ETH-") and account.getBalance(crypto_market) > 0.01:
+    elif market.startswith("ETH-") and account.get_balance(crypto_market) > 0.01:
         last_action = "BUY"
-    elif market.startswith("LTC-") and account.getBalance(crypto_market) > 0.1:
+    elif market.startswith("LTC-") and account.get_balance(crypto_market) > 0.1:
         last_action = "BUY"
-    elif market.startswith("XLM-") and account.getBalance(crypto_market) > 35:
+    elif market.startswith("XLM-") and account.get_balance(crypto_market) > 35:
         last_action = "BUY"
-    elif account.getBalance(fiat_market) > 30:
+    elif account.get_balance(fiat_market) > 30:
         last_action = "SELL"
 
     authAPI = AuthAPI(
@@ -404,7 +245,9 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
         macd_text = get_comparison_string(
             df_last["macd"].values[0], df_last["signal"].values[0], "MACD", precision
         )
-        obv_text = get_comparison_string(df_last["obv_pc"].values[0], 0.1, "OBV %", precision)
+        obv_text = get_comparison_string(
+            df_last["obv_pc"].values[0], 0.1, "OBV %", precision
+        )
         counter_text = (
             "[I:"
             + str(iterations)
@@ -746,7 +589,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     config["api_url"],
                 )
                 # execute a live market buy
-                resp = model.marketBuy(market, float(account.getBalance(fiat_market)))
+                resp = model.marketBuy(market, float(account.get_balance(fiat_market)))
                 logging.info(resp)
                 # logging.info('attempt to buy ' + resp['specified_funds'] + ' (' + resp['funds'] + ' after fees) of ' + resp['product_id'])
             # if not live
@@ -807,7 +650,7 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
             x_since_buy = 0
 
             # if live
-            if is_live == 1:
+            if live == 1:
                 if is_verbose == 0:
                     logging.info(
                         current_df_index
@@ -856,7 +699,9 @@ def executeJob(sc, market, granularity, tradingData=pd.DataFrame()):
                     config["api_url"],
                 )
                 # execute a live market sell
-                resp = model.marketSell(market, float(account.getBalance(crypto_market)))
+                resp = model.marketSell(
+                    market, float(account.get_balance(crypto_market))
+                )
                 logging.info(resp)
                 # logging.info('attempt to sell ' + resp['size'] + ' of ' + resp['product_id'])
             # if not live
@@ -1065,14 +910,14 @@ try:
     # if live
     if is_live == 1:
         # if live, ensure sufficient funds to place next buy order
-        if (last_action == "" or last_action == "SELL") and account.getBalance(
+        if (last_action == "" or last_action == "SELL") and account.get_balance(
             fiat_market
         ) == 0:
             raise Exception(
                 "Insufficient " + fiat_market + " funds to place next buy order!"
             )
         # if live, ensure sufficient crypto to place next sell order
-        elif last_action == "BUY" and account.getBalance(crypto_market) == 0:
+        elif last_action == "BUY" and account.get_balance(crypto_market) == 0:
             raise Exception(
                 "Insufficient " + crypto_market + " funds to place next sell order!"
             )
@@ -1124,11 +969,3 @@ try:
         executeJob(s, market, granularity)
 
     s.run()
-
-# catches a keyboard break of app, exits gracefully
-except KeyboardInterrupt:
-    click.echo(datetime.now(), "closed")
-    try:
-        sys.exit(0)
-    except SystemExit:
-        os._exit(0)
